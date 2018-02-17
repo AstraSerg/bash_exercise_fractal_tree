@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# read depth  # tree depth
-depth=5  # temporary
+read depth1  # tree depth
 
+depth=$((depth1 - 1))
 width=100  # result width
 height=63  # result height
 dot='1'  # foreground symbol
@@ -10,38 +10,47 @@ back='_'  # background symbol
 init_Y_height=16  
 
 # calculating dots
-mid=$((width / 2))
+cntr=$((width / 2 + 1))
 dots=''
-prev_row=0
-for lev in $(seq 0 $depth); do
+y=0
+mids=$cntr
+
+for lev in $(seq 0 $depth); do  # iterating levels
 	cur_Y_height=$((init_Y_height / 2 ** lev))
-	for Y_count in $(seq 1 $((2 ** lev))); do
-		echo $Y_count
-		# creating Y base
-		for i in $(seq 1 $cur_Y_height); do
-			dots="$dots $mid;$i"
-		done
-		prev_row=$((prev_row + i))
-		
-		# creating Y antennas
-		for i in $(seq 1 $cur_Y_height); do
-			x=$((mid - i))
-			y=$((prev_row + i))
-			dots="$dots $x;$y"
-			x=$((mid + i))
-			dots="$dots $x;$y"
-		done
-		prev_row=$((prev_row + i))
+	shift_count=$((2 ** lev/2))  # number of Y-base shifts on current level to each side
+	shift_len=$((2 ** (5 - lev + 1)))  # size of the shift
+	shift_sum=$((shift_len / 2))  # init shift for total shift length
+	for i in $(seq 1 $shift_count); do
+		mids="$mids $((cntr - shift_sum)) $((cntr + shift_sum))"
+		shift_sum=$((shift_sum + shift_len))
 	done
+
+	for Y_count in $(seq 1 $((2 ** lev))); do  # creating needed number of Y-s
+		# creating Y base
+		for i in $(seq 1 $((cur_Y_height))); do
+			y_cur=$((y + i))
+			for mid in $mids; do
+				dots="$dots $mid;$y_cur"
+			done
+		done
+		# creating Y antennas
+		for i in $(seq 1 $((cur_Y_height))); do  # 
+			y_cur=$((y + i + cur_Y_height))
+			for mid in $mids; do
+				x=$((mid - i))
+				dots="$dots $x;$y_cur"
+				x=$((mid + i))
+				dots="$dots $x;$y_cur"
+			done
+		done
+	done
+	mids=''  # new mids on th next level
+	y=$((y + 2 * cur_Y_height))
 done
 
-exit
-
-# dots='20;10 30;12'  # temporary
-
 # drawing the area
-for row in $(seq 1 $height); do
-	for col in $(seq 1 $width); do
+for row in $(seq 1 $height | tac); do
+	for col in $(seq 1 $width | tac); do
 		for d in $dots; do
 			if [ "${col};${row}" = "$d" ]; then
 				echo -en "$dot"
