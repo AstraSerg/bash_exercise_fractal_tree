@@ -50,16 +50,12 @@ done
 
 # drawing the area
 for row in $(seq 1 $height | tac); do
-	for col in $(seq 1 $width | tac); do
-		for d in $dots; do
-			if [ "${col};${row}" = "$d" ]; then
-				echo -en "$dot"
-				continue 2
-			fi
-		done
-		echo -en "$back"
+	r=$(printf "$back%.0s" $(seq 1 $width))
+	for x in $(echo " $dots " | \
+			   egrep -o "[0-9]+;${row} " | \
+			   awk -F\; '{print $1-2}'); do  # all X-coord in current row
+		r=$(echo $r | sed "s/^\(.\{$x\}\).\(.\+\)$/\1${dot}\2/g")
 	done
-	echo
+	echo $r
 done
-
 
